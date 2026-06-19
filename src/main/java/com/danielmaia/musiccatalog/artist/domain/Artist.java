@@ -54,14 +54,17 @@ public class Artist {
         this.name = requireText(name, "Artist name is required");
         this.biography = biography;
         this.country = country;
+        this.updatedAt = Instant.now();
     }
 
     public void deactivate() {
         this.active = false;
+        this.updatedAt = Instant.now();
     }
 
     public void activate() {
         this.active = true;
+        this.updatedAt = Instant.now();
     }
 
     @PrePersist
