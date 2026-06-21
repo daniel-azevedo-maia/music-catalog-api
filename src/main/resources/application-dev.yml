@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5433/music_catalog
+    url: jdbc:postgresql://localhost:5434/music_catalog
     username: music_user
     password: music_password
     driver-class-name: org.postgresql.Driver

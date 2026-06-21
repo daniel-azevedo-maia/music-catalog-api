@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: music_user
       POSTGRES_PASSWORD: music_password
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - music_catalog_postgres_data:/var/lib/postgresql/data
     healthcheck:
