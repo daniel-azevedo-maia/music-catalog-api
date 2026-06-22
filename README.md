@@ -2,26 +2,43 @@
 
 A production-oriented REST API built with **Java 21**, **Spring Boot**, **PostgreSQL**, **Flyway**, **JPA/Hibernate**, **Docker Compose**, and automated tests.
 
-This project simulates the development of a real backend system for managing a music catalog. It was built step by step using professional practices such as versioned database migrations, layered architecture, DTO-based API contracts, validation, global error handling, feature branches, and automated testing.
+This project simulates the development of a real backend system for managing a music catalog. It was built step by step using professional backend practices such as versioned database migrations, layered architecture, DTO-based API contracts, input validation, global exception handling, feature branches, automated testing, and manual API validation.
 
-The goal of this project is not just to expose CRUD endpoints, but to demonstrate how a backend application can be designed, tested, documented, and evolved in a maintainable way.
+The goal of this project is not just to expose CRUD endpoints. The goal is to demonstrate how a backend application can be designed, tested, documented, and evolved in a maintainable way.
 
 ---
 
 ## Project Overview
 
-Music Catalog API is a backend system for managing music catalog data.
+Music Catalog API is a backend system for managing structured music catalog data.
 
 The current version supports:
 
 - Artist management
 - Album management
-- Relationship between albums and artists
+- Track management
+- Relationship between artists, albums, and tracks
 - Input validation
 - Structured error responses
 - Automated tests across controller, service, and repository layers
+- Manual validation through HTTP requests with `curl`
 
-The project is organized as a practical portfolio backend application, with emphasis on clean code, testability, database consistency, and incremental delivery.
+The project is organized as a practical portfolio backend application, with emphasis on clean code, testability, database consistency, incremental delivery, and production-oriented decisions.
+
+Current domain relationship:
+
+```txt
+Artist 1 ---- N Album
+Album  1 ---- N Track
+```
+
+Meaning:
+
+```txt
+One artist can have many albums.
+One album can have many tracks.
+One track belongs to one album.
+```
 
 ---
 
@@ -41,7 +58,10 @@ Implemented so far:
 - Artist CRUD REST API
 - Album domain
 - Album CRUD REST API
+- Track domain
+- Track CRUD REST API
 - Relationship `Album -> Artist`
+- Relationship `Track -> Album`
 - DTOs for requests and responses
 - Mapper classes
 - Service layer with transactional boundaries
@@ -49,12 +69,12 @@ Implemented so far:
 - Controller tests with MockMvc
 - Service tests with Mockito
 - Repository integration tests with Testcontainers
-- Manual API validation with curl
+- Manual API validation with `curl`
 
 Last automated test result:
 
 ```txt
-Tests run: 31, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 39, Failures: 0, Errors: 0, Skipped: 0
 ```
 
 ---
@@ -74,6 +94,7 @@ Tests run: 31, Failures: 0, Errors: 0, Skipped: 0
 - MockMvc for web layer testing
 - Mockito for service layer unit tests
 - Git feature branch workflow
+- Manual validation with `curl`
 
 ---
 
@@ -121,6 +142,16 @@ updatedAt
 
 Artists use soft deletion. Instead of being physically removed from the database, they are marked as inactive.
 
+Current endpoints:
+
+```http
+GET    /api/v1/artists
+GET    /api/v1/artists/{id}
+POST   /api/v1/artists
+PUT    /api/v1/artists/{id}
+DELETE /api/v1/artists/{id}
+```
+
 ---
 
 ### Album
@@ -149,6 +180,78 @@ Meaning:
 ```txt
 One artist can have many albums.
 One album belongs to one main artist.
+```
+
+Current endpoints:
+
+```http
+GET    /api/v1/albums
+GET    /api/v1/albums/{id}
+POST   /api/v1/albums
+PUT    /api/v1/albums/{id}
+DELETE /api/v1/albums/{id}
+```
+
+---
+
+### Track
+
+Represents a song inside an album.
+
+Main fields:
+
+```txt
+id
+title
+durationSeconds
+trackNumber
+album
+createdAt
+updatedAt
+```
+
+Current relationship:
+
+```txt
+Album 1 ---- N Track
+```
+
+Meaning:
+
+```txt
+One album can have many tracks.
+One track belongs to one album.
+```
+
+Current endpoints:
+
+```http
+GET    /api/v1/tracks
+GET    /api/v1/tracks/{id}
+POST   /api/v1/tracks
+PUT    /api/v1/tracks/{id}
+DELETE /api/v1/tracks/{id}
+```
+
+The `TrackResponse` also includes album and artist information, making the API response more useful for clients:
+
+```txt
+track -> album -> artist
+```
+
+Example response fields:
+
+```txt
+id
+title
+durationSeconds
+trackNumber
+albumId
+albumTitle
+artistId
+artistName
+createdAt
+updatedAt
 ```
 
 ---
@@ -198,6 +301,13 @@ src/main/java/com/danielmaia/musiccatalog
 │   ├── mapper
 │   ├── repository
 │   └── service
+├── track
+│   ├── controller
+│   ├── domain
+│   ├── dto
+│   ├── mapper
+│   ├── repository
+│   └── service
 └── common
     ├── exception
     └── health
@@ -232,12 +342,21 @@ Current migrations:
 ```txt
 V1__create_artists_table.sql
 V2__create_albums_table.sql
+V3__create_tracks_table.sql
 ```
 
 Migration directory:
 
 ```txt
 src/main/resources/db/migration
+```
+
+Current tables:
+
+```txt
+artists
+albums
+tracks
 ```
 
 ---
@@ -424,6 +543,18 @@ DELETE /api/v1/albums/{id}
 
 ---
 
+### Tracks
+
+```http
+GET    /api/v1/tracks
+GET    /api/v1/tracks/{id}
+POST   /api/v1/tracks
+PUT    /api/v1/tracks/{id}
+DELETE /api/v1/tracks/{id}
+```
+
+---
+
 ## Manual API Testing with curl
 
 ### Health check
@@ -450,6 +581,8 @@ curl -i -X POST http://localhost:8080/api/v1/artists \
 
 ### Create an album
 
+Use the `id` returned by the artist creation request.
+
 ```bash
 curl -i -X POST http://localhost:8080/api/v1/albums \
   -H "Content-Type: application/json" \
@@ -462,44 +595,64 @@ curl -i -X POST http://localhost:8080/api/v1/albums \
 
 ---
 
-### List albums
+### Create a track
+
+Use the `id` returned by the album creation request.
 
 ```bash
-curl -i http://localhost:8080/api/v1/albums
-```
-
----
-
-### Find album by ID
-
-```bash
-curl -i http://localhost:8080/api/v1/albums/1
-```
-
----
-
-### Update an album
-
-```bash
-curl -i -X PUT http://localhost:8080/api/v1/albums/1 \
+curl -i -X POST http://localhost:8080/api/v1/tracks \
   -H "Content-Type: application/json" \
   -d '{
-    "title": "A Night at the Opera - Remastered",
-    "releaseDate": "1975-11-21"
+    "title": "Bohemian Rhapsody",
+    "durationSeconds": 354,
+    "trackNumber": 11,
+    "albumId": 1
   }'
 ```
 
 ---
 
-### Delete an album
+### List tracks
 
 ```bash
-curl -i -X DELETE http://localhost:8080/api/v1/albums/1
+curl -i http://localhost:8080/api/v1/tracks
+```
+
+---
+
+### Find track by ID
+
+```bash
+curl -i http://localhost:8080/api/v1/tracks/1
+```
+
+---
+
+### Update a track
+
+```bash
+curl -i -X PUT http://localhost:8080/api/v1/tracks/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Bohemian Rhapsody - Remastered",
+    "durationSeconds": 355,
+    "trackNumber": 11
+  }'
+```
+
+---
+
+### Delete a track
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/v1/tracks/1
 ```
 
 ---
 
 ## Validated API Behavior
+
+### Album
 
 Album scenarios manually validated:
 
@@ -510,7 +663,7 @@ Create album with non-existing artist  -> 404
 Find deleted album                     -> 404
 ```
 
-Example validation error:
+Example album validation error:
 
 ```json
 {
@@ -524,7 +677,7 @@ Example validation error:
 }
 ```
 
-Example not found error:
+Example album not found error:
 
 ```json
 {
@@ -532,6 +685,52 @@ Example not found error:
   "error": "Not Found",
   "message": "Album not found",
   "path": "/api/v1/albums/1",
+  "fieldErrors": {}
+}
+```
+
+---
+
+### Track
+
+Track scenarios manually validated:
+
+```txt
+GET    /api/v1/health                         -> 200
+POST   /api/v1/tracks                         -> 201
+GET    /api/v1/tracks                         -> 200
+GET    /api/v1/tracks/{id}                    -> 200
+PUT    /api/v1/tracks/{id}                    -> 200
+POST   /api/v1/tracks with blank title        -> 400
+POST   /api/v1/tracks with invalid duration   -> 400
+POST   /api/v1/tracks with invalid number     -> 400
+POST   /api/v1/tracks with non-existing album -> 404
+DELETE /api/v1/tracks/{id}                    -> 204
+GET    /api/v1/tracks/{id} after delete       -> 404
+```
+
+Example track validation error:
+
+```json
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "path": "/api/v1/tracks",
+  "fieldErrors": {
+    "title": "Track title is required"
+  }
+}
+```
+
+Example track not found error:
+
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Track not found",
+  "path": "/api/v1/tracks/1",
   "fieldErrors": {}
 }
 ```
@@ -564,6 +763,15 @@ Request validation
 Service interaction
 ```
 
+Examples:
+
+```txt
+ArtistControllerTest
+AlbumControllerTest
+TrackControllerTest
+HealthControllerTest
+```
+
 ---
 
 ### Service tests
@@ -592,6 +800,14 @@ Not found errors
 Service-repository interaction
 ```
 
+Examples:
+
+```txt
+ArtistServiceImplTest
+AlbumServiceImplTest
+TrackServiceImplTest
+```
+
 ---
 
 ### Repository integration tests
@@ -611,6 +827,14 @@ integration-test profile
 These tests do not use the local development database.
 
 Each test execution creates an isolated temporary PostgreSQL container.
+
+Examples:
+
+```txt
+ArtistRepositoryTest
+AlbumRepositoryTest
+TrackRepositoryTest
+```
 
 ---
 
@@ -670,6 +894,15 @@ feat: add album entity and repository
 feat: add album service layer
 feat: add album REST endpoints
 chore: change dev postgres port
+docs: update project readme
+```
+
+Main commits from `track-domain`:
+
+```txt
+feat: add track entity and repository
+feat: add track service layer
+feat: add track REST endpoints
 ```
 
 ---
@@ -681,6 +914,7 @@ The project uses a simple convention based on Conventional Commits.
 Examples:
 
 ```txt
+feat: add track REST endpoints
 feat: add album REST endpoints
 fix: update artist timestamp immediately
 chore: change dev postgres port
@@ -742,6 +976,12 @@ Because incomplete work should remain isolated until it is implemented, tested, 
 
 ---
 
+### Why manual validation with curl?
+
+Because automated tests are necessary, but running the application and validating real HTTP behavior is also useful before merging a completed feature.
+
+---
+
 ## Roadmap
 
 Possible next steps:
@@ -749,16 +989,19 @@ Possible next steps:
 ```txt
 Pagination and sorting
 OpenAPI/Swagger documentation
-Track domain
 Genre domain
-Album -> Track relationship
 Search artists
 Search albums
-Filters by country, year, and status
+Search tracks
+Filters by country, year, album, artist, and status
 Dockerfile for the API
 GitHub Actions CI pipeline
+Spring Boot Actuator
+Prometheus and Grafana observability
+Structured logs
 Spring Security authentication
 Role-based authorization
+Cloud deployment
 ```
 
 ---
