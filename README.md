@@ -1,67 +1,78 @@
 # Music Catalog API
 
-A professional Spring Boot REST API for managing a music catalog.
+A REST API built with **Java 21**, **Spring Boot**, **PostgreSQL**, **Flyway**, **JPA/Hibernate**, **Docker Compose**, and automated tests.
 
-This project is being developed as a practical, production-oriented backend application using **Java 21**, **Spring Boot**, **PostgreSQL**, **Flyway**, **JPA/Hibernate**, **Docker Compose**, **Testcontainers**, automated tests, and a clean layered architecture.
+This project is being developed step by step as a practical backend portfolio project. The goal is not only to create CRUD endpoints, but to show how a real backend API can be designed, implemented, tested, documented, and evolved in an organized way.
 
-The main goal is to build a realistic backend system step by step, applying professional practices such as versioned database migrations, isolated testing, feature branches, small commits, and explicit validation of each development checkpoint.
-
----
-
-## Project Status
-
-This project is currently under active development.
-
-Implemented so far:
-
-- Initial Spring Boot project setup
-- Health check endpoint
-- Professional application configuration using profiles
-- PostgreSQL environment with Docker Compose
-- Flyway database migration setup
-- JPA/Hibernate configuration
-- `Artist` domain entity
-- `ArtistRepository`
-- Repository integration tests with Testcontainers
-
-Planned next steps:
-
-- Artist service layer
-- Artist REST controller
-- DTO validation
-- Global exception handling
-- API documentation with OpenAPI/Swagger
-- Additional music catalog domains such as albums, tracks, genres, and users
-- Authentication and authorization
-- CI pipeline with GitHub Actions
-
----
-
-## Domain Overview
-
-The application is a music catalog backend.
-
-The system is intended to manage entities such as:
+The project currently supports:
 
 - Artists
 - Albums
 - Tracks
 - Genres
-- Catalog metadata
+- Validation
+- Global error handling
+- Automated tests
+- Manual API validation with `curl`
 
-The first real domain implemented is `Artist`.
+---
 
-Current `Artist` attributes include:
+## Project Goal
 
-- `id`
-- `name`
-- `biography`
-- `country`
-- `active`
-- `createdAt`
-- `updatedAt`
+The main goal of this project is to practice and demonstrate a complete backend development workflow using Java and Spring Boot.
 
-The project uses a soft-deactivation approach for artists, meaning an artist can be marked as inactive instead of being physically removed from the database.
+The project is intentionally being built in small, clear steps:
+
+```txt
+1. Create the database migration
+2. Create the domain entity
+3. Create the repository
+4. Test the repository with a real PostgreSQL container
+5. Create DTOs
+6. Create the mapper
+7. Create the service
+8. Test the service with Mockito
+9. Create the controller
+10. Test the controller with MockMvc
+11. Validate manually with curl
+12. Update the README
+13. Merge the feature branch
+```
+
+This approach keeps each feature easy to understand, test, review, and maintain.
+
+---
+
+## Current Status
+
+Implemented so far:
+
+```txt
+Health check endpoint
+Artist domain
+Album domain
+Track domain
+Genre domain
+Global exception handling
+Request validation
+Layered architecture
+Database migrations with Flyway
+Repository tests with Testcontainers
+Service tests with Mockito
+Controller tests with MockMvc
+Manual validation with curl
+```
+
+Current domain relationships:
+
+```txt
+Artist 1 ---- N Album
+Album  1 ---- N Track
+```
+
+The `Genre` domain currently exists as an independent catalog entity.
+
+A future step may connect genres to tracks or albums.
 
 ---
 
@@ -71,8 +82,8 @@ The project uses a soft-deactivation approach for artists, meaning an artist can
 |---|---|
 | Language | Java 21 |
 | Framework | Spring Boot 3.5.15 |
-| Build Tool | Maven |
-| Web Layer | Spring Web |
+| Build Tool | Maven Wrapper |
+| Web | Spring Web |
 | Persistence | Spring Data JPA |
 | ORM | Hibernate |
 | Database | PostgreSQL 17 |
@@ -80,35 +91,20 @@ The project uses a soft-deactivation approach for artists, meaning an artist can
 | Validation | Jakarta Bean Validation |
 | Boilerplate Reduction | Lombok |
 | Local Infrastructure | Docker Compose |
-| Integration Testing | Testcontainers |
-| Test Framework | JUnit 5 |
+| Testing | JUnit 5 |
 | Assertions | AssertJ |
-| API Testing | MockMvc |
+| Mocking | Mockito |
+| Web Tests | MockMvc |
+| Integration Tests | Testcontainers |
 | Version Control | Git |
 
 ---
 
 ## Architecture
 
-The project follows a **clean layered architecture**.
+The project uses a simple layered architecture.
 
-The current structure is organized by domain/feature, instead of grouping everything globally by technical type.
-
-Example:
-
-```txt
-src/main/java/com/danielmaia/musiccatalog
-├── artist
-│   ├── domain
-│   ├── repository
-│   ├── dto
-│   ├── mapper
-│   └── service
-└── common
-    └── health
-```
-
-The intended request flow is:
+Main request flow:
 
 ```txt
 Controller
@@ -120,56 +116,242 @@ Repository
 Database
 ```
 
-Each layer has a clear responsibility.
+Each layer has a clear responsibility:
 
-### Controller
+```txt
+Controller -> Receives HTTP requests and returns HTTP responses
+Service    -> Contains application/business logic and transaction boundaries
+Repository -> Communicates with the database through Spring Data JPA
+Domain     -> Represents the internal model of the application
+DTO        -> Defines what enters and leaves the API
+Mapper     -> Converts domain objects into response DTOs
+```
 
-Responsible for HTTP communication.
+---
 
-It receives requests, validates input, and returns responses.
+## Package Structure
 
-It should not contain business rules.
+Main structure:
 
-### Service
+```txt
+src/main/java/com/danielmaia/musiccatalog
+├── album
+│   ├── controller
+│   ├── domain
+│   ├── dto
+│   ├── mapper
+│   ├── repository
+│   └── service
+├── artist
+│   ├── controller
+│   ├── domain
+│   ├── dto
+│   ├── mapper
+│   ├── repository
+│   └── service
+├── common
+│   ├── exception
+│   └── health
+├── genre
+│   ├── controller
+│   ├── domain
+│   ├── dto
+│   ├── mapper
+│   ├── repository
+│   └── service
+└── track
+    ├── controller
+    ├── domain
+    ├── dto
+    ├── mapper
+    ├── repository
+    └── service
+```
 
-Responsible for business rules.
+The project is organized by domain instead of by technical layer only. This keeps each feature easier to locate and evolve.
+
+---
+
+## Implemented Domains
+
+### Artist
+
+Represents a music artist.
+
+Main fields:
+
+```txt
+id
+name
+biography
+country
+active
+createdAt
+updatedAt
+```
+
+Artists use soft deletion.
+
+Instead of being physically deleted from the database, they are marked as inactive.
+
+Endpoints:
+
+```http
+GET    /api/v1/artists
+GET    /api/v1/artists/{id}
+POST   /api/v1/artists
+PUT    /api/v1/artists/{id}
+DELETE /api/v1/artists/{id}
+```
+
+---
+
+### Album
+
+Represents a music album.
+
+Main fields:
+
+```txt
+id
+title
+releaseDate
+artist
+createdAt
+updatedAt
+```
+
+Relationship:
+
+```txt
+Artist 1 ---- N Album
+```
+
+Meaning:
+
+```txt
+One artist can have many albums.
+One album belongs to one artist.
+```
+
+Endpoints:
+
+```http
+GET    /api/v1/albums
+GET    /api/v1/albums/{id}
+POST   /api/v1/albums
+PUT    /api/v1/albums/{id}
+DELETE /api/v1/albums/{id}
+```
+
+---
+
+### Track
+
+Represents a song inside an album.
+
+Main fields:
+
+```txt
+id
+title
+durationSeconds
+trackNumber
+album
+createdAt
+updatedAt
+```
+
+Relationship:
+
+```txt
+Album 1 ---- N Track
+```
+
+Meaning:
+
+```txt
+One album can have many tracks.
+One track belongs to one album.
+```
+
+The track response also includes album and artist information:
+
+```txt
+track -> album -> artist
+```
+
+Endpoints:
+
+```http
+GET    /api/v1/tracks
+GET    /api/v1/tracks/{id}
+POST   /api/v1/tracks
+PUT    /api/v1/tracks/{id}
+DELETE /api/v1/tracks/{id}
+```
+
+---
+
+### Genre
+
+Represents a music genre.
+
+Main fields:
+
+```txt
+id
+name
+description
+createdAt
+updatedAt
+```
 
 Examples:
 
-- checking if an artist already exists
-- deciding whether an entity can be updated
-- coordinating repository operations
-- defining transactional boundaries
+```txt
+Rock
+Jazz
+Pop
+MPB
+Classical
+Hip Hop
+```
 
-### Repository
+Endpoints:
 
-Responsible for database access.
+```http
+GET    /api/v1/genres
+GET    /api/v1/genres/{id}
+POST   /api/v1/genres
+PUT    /api/v1/genres/{id}
+DELETE /api/v1/genres/{id}
+```
 
-It uses Spring Data JPA to persist and query entities.
+Implemented in the Genre feature:
 
-### Domain
-
-Represents the core business entities.
-
-The domain entity should protect its own consistency when possible.
-
-For example, the `Artist` entity validates that the name cannot be blank and controls activation/deactivation through methods.
-
-### DTOs
-
-DTOs are used to separate the external API contract from the internal domain model.
-
-The API should not expose JPA entities directly.
-
-### Mapper
-
-Responsible for converting domain entities into response DTOs.
+```txt
+V4__create_genres_table.sql
+Genre entity
+GenreRepository
+GenreRepositoryTest
+GenreCreateRequest
+GenreUpdateRequest
+GenreResponse
+GenreMapper
+GenreService
+GenreServiceImpl
+GenreServiceImplTest
+GenreController
+GenreControllerTest
+Manual validation with curl
+```
 
 ---
 
 ## Database Strategy
 
-The project uses **Flyway** for database versioning.
+The project uses **Flyway** for database migrations.
 
 Hibernate is configured with:
 
@@ -180,253 +362,657 @@ spring:
       ddl-auto: validate
 ```
 
-This means Hibernate does **not** create or update tables automatically.
-
-Instead:
+This means:
 
 ```txt
 Flyway creates and updates the database schema.
-Hibernate validates whether the Java entities match the database schema.
+Hibernate only validates whether the Java entities match the database schema.
 ```
 
-This approach is safer and closer to production standards.
+This is closer to production than allowing Hibernate to create or update tables automatically.
 
-Database migrations are stored in:
+Current migrations:
+
+```txt
+V1__create_artists_table.sql
+V2__create_albums_table.sql
+V3__create_tracks_table.sql
+V4__create_genres_table.sql
+```
+
+Current tables:
+
+```txt
+artists
+albums
+tracks
+genres
+```
+
+Migration directory:
 
 ```txt
 src/main/resources/db/migration
 ```
 
-Current migration:
-
-```txt
-V1__create_artists_table.sql
-```
-
 ---
 
-## Profiles
+## Validation Strategy
 
-The project uses different Spring profiles for different execution contexts.
+The project uses validation in three different levels.
 
-### `dev`
+### 1. DTO validation
 
-Used when running the application locally.
-
-This is the default profile.
-
-Configured in:
-
-```txt
-src/main/resources/application-dev.yml
-```
-
-It uses PostgreSQL through Docker Compose.
-
-### `test`
-
-Used for lightweight automated tests that do not need a real database.
-
-Configured in:
-
-```txt
-src/main/resources/application-test.yml
-```
+DTOs validate incoming HTTP requests.
 
 Example:
 
-- Health controller test with MockMvc
+```java
+public record GenreCreateRequest(
 
-### `integration-test`
+        @NotBlank(message = "Genre name is required")
+        @Size(max = 80, message = "Genre name must have at most 80 characters")
+        String name,
 
-Used for integration tests that need a real PostgreSQL database.
-
-Configured in:
-
-```txt
-src/main/resources/application-integration-test.yml
+        @Size(max = 255, message = "Genre description must have at most 255 characters")
+        String description
+) {
+}
 ```
 
-These tests use Testcontainers instead of the development database.
+This prevents invalid requests from reaching the service layer.
 
 ---
 
-## Docker Compose
+### 2. Domain protection
 
-The project uses Docker Compose to run PostgreSQL locally during development.
+Entities protect their own internal consistency.
 
-Current PostgreSQL service:
+Example:
 
-```yaml
-services:
-  postgres:
-    image: postgres:17-alpine
-    container_name: music-catalog-postgres
-    environment:
-      POSTGRES_DB: music_catalog
-      POSTGRES_USER: music_user
-      POSTGRES_PASSWORD: music_password
-    ports:
-      - "5433:5432"
-    volumes:
-      - music_catalog_postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U music_user -d music_catalog"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+```java
+public Genre(String name, String description) {
+    this.name = requireText(name, "Genre name is required");
+    this.description = normalizeOptionalText(description);
+}
 ```
 
-The mapping:
+This protects the domain even if the entity is created outside the controller flow.
+
+---
+
+### 3. Database constraints
+
+The database is the final integrity barrier.
+
+Example:
+
+```sql
+CREATE TABLE genres (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(80) NOT NULL,
+    description VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_genres_name
+        UNIQUE (name)
+);
+```
+
+So the project uses:
 
 ```txt
-5433:5432
+DTO validation       -> validates API input
+Entity validation    -> protects the domain model
+Database constraints -> protect persisted data
 ```
 
-means:
+---
 
-```txt
-5433 -> port exposed on the host machine
-5432 -> internal PostgreSQL port inside the container
+## Error Handling
+
+The project has global exception handling.
+
+Validation errors return structured JSON responses.
+
+Example:
+
+```json
+{
+  "timestamp": "2026-06-25T18:45:32.800002666Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "path": "/api/v1/genres",
+  "fieldErrors": {
+    "name": "Genre name is required"
+  }
+}
 ```
 
-This avoids conflicts with a PostgreSQL instance that may already be installed locally on port `5432`.
+Not found errors also return structured JSON responses.
 
-The Spring Boot Docker Compose integration is configured with:
+Example:
 
-```yaml
-spring:
-  docker:
-    compose:
-      enabled: true
-      file: compose.yaml
-      lifecycle-management: start-and-stop
+```json
+{
+  "timestamp": "2026-06-25T18:45:47.393756494Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Genre not found",
+  "path": "/api/v1/genres/1",
+  "fieldErrors": {}
+}
 ```
-
-This means that when the application starts, Spring Boot can automatically start the Docker Compose services, wait for PostgreSQL to become healthy, and then start the application.
 
 ---
 
 ## Testing Strategy
 
-The project follows a **test-supported incremental development** approach.
+The project uses three main kinds of tests:
 
-The idea is to develop in small checkpoints and validate each step before moving forward.
+```txt
+Controller tests
+Service tests
+Repository integration tests
+```
 
-Current test types:
+Each type of test has a different purpose.
 
-### Web slice tests
+---
 
-Used to test controller behavior without starting the entire application.
+### Controller Tests
+
+Controller tests validate the HTTP layer.
+
+Main tools:
+
+```txt
+@WebMvcTest
+@MockitoBean
+MockMvc
+jsonPath
+status matchers
+```
+
+Example structure:
+
+```java
+@WebMvcTest(GenreController.class)
+@ActiveProfiles("test")
+class GenreControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private GenreService genreService;
+}
+```
+
+What is being tested:
+
+```txt
+HTTP status codes
+Request validation
+JSON response fields
+Controller-to-service interaction
+```
 
 Example:
 
 ```java
-@WebMvcTest(HealthController.class)
-@ActiveProfiles("test")
-class HealthControllerTest {
+mockMvc.perform(post("/api/v1/genres")
+                .contentType("application/json")
+                .content(requestBody))
+        .andExpect(status().isCreated())
+        .andExpect(jsonPath("$.id").value(1L))
+        .andExpect(jsonPath("$.name").value("Rock"));
+```
+
+This means:
+
+```txt
+Perform a POST request to /api/v1/genres.
+Expect HTTP 201 Created.
+Expect the JSON response to contain id = 1.
+Expect the JSON response to contain name = Rock.
+```
+
+The service is mocked in controller tests because the goal is not to test business logic here. The goal is to test the web layer.
+
+---
+
+### Service Tests
+
+Service tests validate the application logic.
+
+Main tools:
+
+```txt
+JUnit 5
+Mockito
+AssertJ
+@Mock
+@InjectMocks
+when
+thenReturn
+thenAnswer
+verify
+ReflectionTestUtils
+```
+
+Example structure:
+
+```java
+@ExtendWith(MockitoExtension.class)
+class GenreServiceImplTest {
+
+    @Mock
+    private GenreRepository genreRepository;
+
+    @InjectMocks
+    private GenreServiceImpl genreService;
 }
 ```
 
-This test uses:
+Meaning:
 
-- Spring MVC test context
-- MockMvc
-- `test` profile
-- no real database
-- no Docker Compose
+```txt
+@Mock creates a fake GenreRepository.
+@InjectMocks creates the real GenreServiceImpl and injects the fake repository into it.
+```
 
-### Repository integration tests
+So the service is real, but the repository is fake.
 
-Used to test real persistence behavior with PostgreSQL.
+This is important because a service unit test should test the service logic without depending on a real database.
+
+---
+
+### `when(...).thenReturn(...)`
+
+Used to define what a mock should return.
 
 Example:
+
+```java
+when(genreRepository.findById(1L))
+        .thenReturn(Optional.of(genre));
+```
+
+Meaning:
+
+```txt
+When genreRepository.findById(1L) is called,
+return Optional.of(genre).
+```
+
+This is necessary because the repository is a mock. It does not know what to return unless we define it.
+
+---
+
+### `when(...).thenAnswer(...)`
+
+Used when the mock response depends on the argument passed to the method.
+
+Example:
+
+```java
+when(genreRepository.save(any(Genre.class)))
+        .thenAnswer(invocation -> saveGenreWithId(invocation.getArgument(0), 1L));
+```
+
+Meaning:
+
+```txt
+When genreRepository.save(...) is called,
+get the Genre passed to save,
+set id = 1,
+and return that same Genre.
+```
+
+This simulates what the database normally does.
+
+In real execution:
+
+```txt
+The service creates a Genre without id.
+The repository saves it.
+The database generates the id.
+The repository returns the saved Genre with id.
+```
+
+In the unit test:
+
+```txt
+The service creates a Genre without id.
+The mocked repository intercepts save(...).
+The test manually sets id = 1.
+The mocked repository returns the Genre with id.
+```
+
+---
+
+### `verify(...)`
+
+Used to check whether a mock method was called.
+
+Example:
+
+```java
+verify(genreRepository).save(any(Genre.class));
+```
+
+Meaning:
+
+```txt
+Verify that genreRepository.save(...) was called with any Genre object.
+```
+
+Important:
+
+```txt
+This does not verify that something was saved in the database.
+There is no real database in a service unit test.
+It only verifies that the service called the repository correctly.
+```
+
+Database persistence is tested in repository integration tests.
+
+---
+
+### `assertThat(...)`
+
+Used to check the result returned by the method being tested.
+
+Example:
+
+```java
+assertThat(response.id()).isEqualTo(1L);
+assertThat(response.name()).isEqualTo("Rock");
+```
+
+Meaning:
+
+```txt
+Check that the service returned a response with id = 1.
+Check that the service returned a response with name = Rock.
+```
+
+---
+
+### `assertThatThrownBy(...)`
+
+Used to test exceptions.
+
+Example:
+
+```java
+assertThatThrownBy(() -> genreService.findById(99L))
+        .isInstanceOf(EntityNotFoundException.class)
+        .hasMessage("Genre not found");
+```
+
+Meaning:
+
+```txt
+When genreService.findById(99L) is called,
+expect an EntityNotFoundException
+with the message Genre not found.
+```
+
+---
+
+### `ReflectionTestUtils`
+
+Used in tests to set private fields such as `id`.
+
+Example:
+
+```java
+ReflectionTestUtils.setField(genre, "id", 1L);
+```
+
+Why this is used:
+
+```txt
+The id is private.
+There is no public setter for id.
+The id is generated by the database in real execution.
+In a unit test, there is no real database.
+So the test manually sets the id to simulate a saved entity.
+```
+
+This keeps the production code clean while still allowing tests to simulate persisted entities.
+
+---
+
+### Repository Integration Tests
+
+Repository tests validate real persistence behavior.
+
+Main tools:
+
+```txt
+@DataJpaTest
+@Testcontainers
+PostgreSQLContainer
+@ServiceConnection
+Flyway
+AssertJ
+```
+
+Example structure:
 
 ```java
 @DataJpaTest
 @Testcontainers
 @ActiveProfiles("integration-test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class ArtistRepositoryTest {
+class GenreRepositoryTest {
+
+    @Container
+    @ServiceConnection
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
+
+    @Autowired
+    private GenreRepository genreRepository;
 }
 ```
 
-This test uses:
-
-- Spring Data JPA
-- PostgreSQL through Testcontainers
-- Flyway migrations
-- real SQL execution
-- isolated temporary database
-
-The repository test does **not** use the development database from Docker Compose.
-
-Instead, Testcontainers starts a temporary PostgreSQL container only for the test execution.
-
-This makes the tests safer, repeatable, and independent of the local development database state.
-
----
-
-## Development Workflow
-
-This project uses a **Git Flow-inspired feature branch workflow**.
-
-The main branches are:
+Meaning:
 
 ```txt
-main      -> stable baseline
-develop   -> integration branch for completed development work
-feature/* -> isolated feature branches
+@DataJpaTest loads only the JPA-related parts of Spring.
+@Testcontainers enables temporary Docker containers for tests.
+PostgreSQLContainer starts a real PostgreSQL database just for the test.
+@ServiceConnection connects Spring automatically to that test database.
 ```
 
-Current workflow:
-
-```txt
-Create a feature branch
-        ↓
-Implement a small checkpoint
-        ↓
-Run automated tests
-        ↓
-Commit the checkpoint
-        ↓
-Continue development
-        ↓
-Merge into develop only when the feature is complete
-```
-
-In practice:
-
-```bash
-git checkout develop
-git checkout -b feature/artist-domain
-```
-
-Small commits are made inside the feature branch.
+This is where the project verifies actual database behavior.
 
 Example:
 
-```bash
-git commit -m "feat: add artist entity and repository"
+```java
+Genre genre = new Genre("Rock", "Music genre characterized by electric guitars, drums and strong rhythm.");
+
+Genre savedGenre = genreRepository.saveAndFlush(genre);
+
+assertThat(savedGenre.getId()).isNotNull();
+assertThat(savedGenre.getName()).isEqualTo("Rock");
 ```
 
-The feature branch is merged into `develop` only after the feature is complete and tested.
+Meaning:
 
-This approach keeps `develop` cleaner and avoids merging incomplete pieces of functionality.
-
-This is not strict Git Flow with release branches yet, but it follows the same core idea of isolating work in feature branches before integration.
+```txt
+Create a Genre.
+Save it in a real PostgreSQL test database.
+Check that the database generated an id.
+Check that the values were persisted correctly.
+```
 
 ---
 
-## Current Git History
-
-Current local history:
+## What Each Test Type Proves
 
 ```txt
-* feat: add artist entity and repository
-* chore: configure application profiles and docker compose
-* feat: add health check endpoint
-* feat: create initial Spring Boot project
+Controller test   -> the HTTP API behaves correctly
+Service test      -> the business/application logic behaves correctly
+Repository test   -> the database persistence behaves correctly
+```
+
+They do not replace each other.
+
+They complement each other.
+
+---
+
+## Manual API Testing with curl
+
+Automated tests are important, but the project also validates features manually with `curl`.
+
+This confirms that the application runs and responds through real HTTP requests.
+
+---
+
+### Health
+
+```bash
+curl -i http://localhost:8080/api/v1/health
+```
+
+Expected:
+
+```txt
+200 OK
+```
+
+---
+
+### Create Genre
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/genres \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Rock",
+    "description": "Music genre characterized by electric guitars, drums and strong rhythm."
+  }'
+```
+
+Expected:
+
+```txt
+201 Created
+```
+
+---
+
+### List Genres
+
+```bash
+curl -i http://localhost:8080/api/v1/genres
+```
+
+Expected:
+
+```txt
+200 OK
+```
+
+---
+
+### Find Genre by ID
+
+```bash
+curl -i http://localhost:8080/api/v1/genres/1
+```
+
+Expected:
+
+```txt
+200 OK
+```
+
+---
+
+### Update Genre
+
+```bash
+curl -i -X PUT http://localhost:8080/api/v1/genres/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Classic Rock",
+    "description": "Rock music from the classic era."
+  }'
+```
+
+Expected:
+
+```txt
+200 OK
+```
+
+---
+
+### Invalid Genre
+
+```bash
+curl -i -X POST http://localhost:8080/api/v1/genres \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "",
+    "description": "Invalid genre."
+  }'
+```
+
+Expected:
+
+```txt
+400 Bad Request
+```
+
+---
+
+### Genre Not Found
+
+```bash
+curl -i http://localhost:8080/api/v1/genres/999
+```
+
+Expected:
+
+```txt
+404 Not Found
+```
+
+---
+
+### Delete Genre
+
+```bash
+curl -i -X DELETE http://localhost:8080/api/v1/genres/1
+```
+
+Expected:
+
+```txt
+204 No Content
+```
+
+---
+
+### Confirm Genre Was Deleted
+
+```bash
+curl -i http://localhost:8080/api/v1/genres/1
+```
+
+Expected:
+
+```txt
+404 Not Found
 ```
 
 ---
@@ -435,15 +1021,16 @@ Current local history:
 
 ### Prerequisites
 
-Make sure the following tools are installed:
+Install:
 
-- Java 21
-- Maven or Maven Wrapper
-- Docker
-- Docker Compose
-- Git
+```txt
+Java 21
+Docker
+Docker Compose
+Git
+```
 
-The project includes the Maven Wrapper, so Maven does not need to be installed globally.
+The project uses Maven Wrapper, so Maven does not need to be installed globally.
 
 ---
 
@@ -462,13 +1049,13 @@ cd music-catalog-api
 ./mvnw clean test
 ```
 
-This command runs:
+This runs:
 
-- unit/slice tests
-- repository integration tests
-- Testcontainers-based PostgreSQL tests
-
-The first execution may take longer because Docker images may need to be downloaded.
+```txt
+Controller tests
+Service tests
+Repository integration tests
+```
 
 ---
 
@@ -478,226 +1065,198 @@ The first execution may take longer because Docker images may need to be downloa
 ./mvnw spring-boot:run
 ```
 
-When running in the default `dev` profile, Spring Boot will use Docker Compose to start PostgreSQL automatically.
-
----
-
-### Test the health endpoint
-
-```bash
-curl -i http://localhost:8080/api/v1/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "UP"
-}
-```
-
----
-
-## Current API Endpoints
-
-### Health Check
-
-```http
-GET /api/v1/health
-```
-
-Response:
-
-```json
-{
-  "status": "UP"
-}
-```
-
-More endpoints will be added as the `Artist` domain evolves.
-
----
-
-## Project Structure
-
-Current structure:
+The API runs at:
 
 ```txt
-music-catalog-api
-├── compose.yaml
-├── pom.xml
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── com
-│   │   │       └── danielmaia
-│   │   │           └── musiccatalog
-│   │   │               ├── artist
-│   │   │               │   ├── domain
-│   │   │               │   └── repository
-│   │   │               └── common
-│   │   │                   └── health
-│   │   └── resources
-│   │       ├── application.yml
-│   │       ├── application-dev.yml
-│   │       ├── application-test.yml
-│   │       ├── application-integration-test.yml
-│   │       └── db
-│   │           └── migration
-│   └── test
-│       └── java
-│           └── com
-│               └── danielmaia
-│                   └── musiccatalog
-│                       ├── artist
-│                       │   └── repository
-│                       └── common
-│                           └── health
+http://localhost:8080
 ```
 
 ---
 
-## Configuration Files
+## Docker Compose
 
-### `application.yml`
+The project uses Docker Compose for the local PostgreSQL database.
 
-Base application configuration.
+PostgreSQL configuration:
 
-Defines:
+```yaml
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: music-catalog-postgres
+    environment:
+      POSTGRES_DB: music_catalog
+      POSTGRES_USER: music_user
+      POSTGRES_PASSWORD: music_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - music_catalog_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music_user -d music_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-- application name
-- default profile
-- server port
+volumes:
+  music_catalog_postgres_data:
+```
 
-### `application-dev.yml`
+Port mapping:
 
-Development configuration.
+```txt
+5434:5432
+```
 
-Defines:
+Meaning:
 
-- PostgreSQL datasource
-- JPA behavior
-- Flyway
-- Docker Compose lifecycle
-
-### `application-test.yml`
-
-Lightweight test configuration.
-
-Disables:
-
-- Docker Compose
-- Flyway
-
-Used for tests that do not require a real database.
-
-### `application-integration-test.yml`
-
-Integration test configuration.
-
-Enables:
-
-- Flyway
-- JPA validation
-
-Used together with Testcontainers.
+```txt
+5434 -> host machine port
+5432 -> PostgreSQL internal container port
+```
 
 ---
 
-## Current Branching Model
+## Spring Profiles
 
-Recommended current branch usage:
+### dev
+
+Used for local development.
+
+```txt
+src/main/resources/application-dev.yml
+```
+
+---
+
+### test
+
+Used for controller tests and lightweight tests.
+
+```txt
+src/main/resources/application-test.yml
+```
+
+---
+
+### integration-test
+
+Used for repository tests with Testcontainers.
+
+```txt
+src/main/resources/application-integration-test.yml
+```
+
+---
+
+## Git Workflow
+
+The project uses feature branches.
+
+Main branches:
 
 ```txt
 main
-  Stable project baseline.
-
 develop
-  Integration branch for completed features.
+feature/*
+```
 
+Feature workflow:
+
+```txt
+1. Start from develop
+2. Create a feature branch
+3. Implement the feature in small steps
+4. Commit each major checkpoint
+5. Push to GitHub
+6. Run all tests
+7. Validate manually with curl
+8. Update README
+9. Merge into develop
+```
+
+Example feature branches:
+
+```txt
 feature/artist-domain
-  Current feature branch for the Artist domain.
+feature/album-domain
+feature/track-domain
+feature/genre-domain
+```
+
+---
+
+## Recent Feature Checkpoints
+
+### Track Domain
+
+```txt
+feat: add track entity and repository
+feat: add track service layer
+feat: add track REST endpoints
+docs: update track feature tutorial
+```
+
+---
+
+### Genre Domain
+
+```txt
+feat: add genre entity and repository
+feat: add genre service layer
+feat: add genre REST endpoints
 ```
 
 ---
 
 ## Commit Convention
 
-This project uses a simple conventional commit style.
+The project uses a simple Conventional Commits style.
 
 Examples:
 
 ```txt
-feat: create initial Spring Boot project
-feat: add health check endpoint
-chore: configure application profiles and docker compose
-feat: add artist entity and repository
+feat: add genre REST endpoints
+feat: add track service layer
+docs: update genre feature tutorial
+fix: update artist timestamp immediately
+chore: change dev postgres port
+test: add genre controller tests
+refactor: improve service implementation
 ```
 
 Common prefixes:
 
 ```txt
-feat   -> new feature
-fix    -> bug fix
-chore  -> configuration, tooling, maintenance
-test   -> test-related changes
-docs   -> documentation
-refactor -> code improvement without changing behavior
+feat     -> new feature
+fix      -> bug fix
+docs     -> documentation
+test     -> tests
+chore    -> maintenance/configuration
+refactor -> internal improvement without changing behavior
 ```
-
-This makes the Git history easier to read.
-
----
-
-## Design Decisions
-
-### Why Flyway instead of Hibernate creating tables automatically?
-
-Because Flyway gives explicit, versioned, repeatable database evolution.
-
-This is safer for real projects and production environments.
-
-### Why `ddl-auto: validate`?
-
-Because Hibernate should validate the schema, not silently create or change it.
-
-This helps catch mismatches between entity mappings and database migrations.
-
-### Why Testcontainers?
-
-Because repository tests should use a real database engine.
-
-Testing PostgreSQL behavior with PostgreSQL is more reliable than using an in-memory database that behaves differently.
-
-### Why Docker Compose?
-
-Because local development should be easy and reproducible.
-
-Developers should be able to run the application without manually installing PostgreSQL.
-
-### Why feature branches?
-
-Because unfinished work should stay isolated until it is complete and tested.
 
 ---
 
 ## Roadmap
 
-Planned technical improvements:
+Possible next steps:
 
-- Artist service layer
-- Artist REST API
-- Request and response DTOs
-- Bean Validation
-- Global error handling
-- Pagination and sorting
-- OpenAPI/Swagger documentation
-- Docker image for the API
-- GitHub Actions CI
-- Security with Spring Security
-- Authentication and authorization
-- More domain models: albums, tracks, genres
-- End-to-end API tests
+```txt
+Connect Genre to Track or Album
+Pagination and sorting
+Search endpoints
+Swagger/OpenAPI documentation
+Improve exception handling
+Structured logs
+Spring Boot Actuator
+Prometheus and Grafana observability
+Dockerfile for the API
+GitHub Actions CI
+Spring Security
+JWT authentication
+Cloud deployment
+```
 
 ---
 
@@ -705,4 +1264,4 @@ Planned technical improvements:
 
 Daniel Azevedo Maia
 
-Software Engineer focused on backend development, Java, Spring Boot, cloud-native systems, and production-oriented software architecture.
+Software Engineer focused on backend development, Java, Spring Boot, REST APIs, cloud-native systems, and production-oriented software architecture.

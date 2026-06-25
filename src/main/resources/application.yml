@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: music-catalog-api
+
+  profiles:
+    default: dev
+
+server:
+  port: 8080

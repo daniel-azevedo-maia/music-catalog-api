@@ -1,0 +1,10 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+
+  flyway:
+    enabled: false
+
+  jpa:
+    open-in-view: false

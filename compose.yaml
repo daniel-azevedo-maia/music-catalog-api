@@ -1,9 +1,20 @@
 services:
   postgres:
-    image: 'postgres:latest'
+    image: postgres:17-alpine
+    container_name: music-catalog-postgres
     environment:
-      - 'POSTGRES_DB=mydatabase'
-      - 'POSTGRES_PASSWORD=secret'
-      - 'POSTGRES_USER=myuser'
+      POSTGRES_DB: music_catalog
+      POSTGRES_USER: music_user
+      POSTGRES_PASSWORD: music_password
     ports:
-      - '5432'
+      - "5434:5432"
+    volumes:
+      - music_catalog_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U music_user -d music_catalog"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  music_catalog_postgres_data:
