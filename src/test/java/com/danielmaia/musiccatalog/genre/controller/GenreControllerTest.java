@@ -10,6 +10,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -214,6 +216,31 @@ class GenreControllerTest {
                 .andExpect(status().isBadRequest());
 
         verify(genreService, never()).update(eq(1L), any());
+    }
+
+    @Test
+    @DisplayName("Should return conflict when creating duplicated genre")
+    void shouldReturnConflictWhenCreatingDuplicatedGenre() throws Exception {
+        when(genreService.create(any()))
+                .thenThrow(new DataIntegrityViolationException("Duplicated genre"));
+
+        String requestBody = """
+            {
+              "name": "Rock",
+              "description": "Music genre characterized by electric guitars, drums and strong rhythm."
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/genres")
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.error").value("Conflict"))
+                .andExpect(jsonPath("$.message").value("Resource already exists or violates a database constraint"))
+                .andExpect(jsonPath("$.path").value("/api/v1/genres"));
+
+        verify(genreService).create(any());
     }
 
 }
