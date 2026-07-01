@@ -16,7 +16,13 @@ public class OpenApiConfig {
                 .info(new Info()
                         .title("Music Catalog API")
                         .version("0.1.0")
-                        .description("REST API for managing artists, albums, tracks and genres.")
+                        .description("""
+                                Backend REST API for managing, curating and analyzing music catalogs.
+                                
+                                The API supports structured registration of artists, albums, tracks and genres,
+                                providing a foundation for catalog organization, metadata quality control,
+                                search features and future dashboard insights.
+                                """)
                         .contact(new Contact()
                                 .name("Daniel Azevedo Maia")
                                 .email("daniel.azevedo.maia@hotmail.com"))
