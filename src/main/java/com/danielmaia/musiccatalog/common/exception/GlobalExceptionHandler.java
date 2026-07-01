@@ -11,10 +11,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -24,27 +25,14 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException exception,
             HttpServletRequest request
     ) {
-        Map<String, String> fieldErrors = exception.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .collect(Collectors.toMap(
-                        FieldError::getField,
-                        fieldError -> fieldError.getDefaultMessage() == null
-                                ? "Invalid value"
-                                : fieldError.getDefaultMessage(),
-                        (firstMessage, secondMessage) -> firstMessage
-                ));
+        Map<String, String> fieldErrors = extractFieldErrors(exception);
 
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
                 "Validation failed",
-                request.getRequestURI(),
+                request,
                 fieldErrors
         );
-
-        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -52,16 +40,12 @@ public class GlobalExceptionHandler {
             ConstraintViolationException exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
                 "Constraint violation",
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
-
-        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -69,16 +53,12 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
                 "Malformed JSON request",
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
-
-        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
@@ -86,16 +66,12 @@ public class GlobalExceptionHandler {
             EntityNotFoundException exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.NOT_FOUND.value(),
-                "Not Found",
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
                 exception.getMessage(),
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
-
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
@@ -103,16 +79,12 @@ public class GlobalExceptionHandler {
             DataIntegrityViolationException exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.CONFLICT.value(),
-                "Conflict",
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
                 "Resource already exists or violates a database constraint",
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
-
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -120,16 +92,25 @@ public class GlobalExceptionHandler {
             IllegalArgumentException exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Bad Request",
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
                 exception.getMessage(),
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
+    }
 
-        return ResponseEntity.badRequest().body(response);
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            NoResourceFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                "Resource not found",
+                request,
+                Map.of()
+        );
     }
 
     @ExceptionHandler(Exception.class)
@@ -137,15 +118,50 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
-        ErrorResponse response = new ErrorResponse(
-                Instant.now(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Internal Server Error",
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 "An unexpected error occurred",
-                request.getRequestURI(),
+                request,
                 Map.of()
         );
+    }
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    private Map<String, String> extractFieldErrors(MethodArgumentNotValidException exception) {
+        Map<String, String> fieldErrors = new LinkedHashMap<>();
+
+        for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
+            String fieldName = fieldError.getField();
+            String errorMessage = getFieldErrorMessage(fieldError);
+
+            fieldErrors.putIfAbsent(fieldName, errorMessage);
+        }
+
+        return fieldErrors;
+    }
+
+    private String getFieldErrorMessage(FieldError fieldError) {
+        if (fieldError.getDefaultMessage() == null) {
+            return "Invalid value";
+        }
+
+        return fieldError.getDefaultMessage();
+    }
+
+    private ResponseEntity<ErrorResponse> buildErrorResponse(
+            HttpStatus status,
+            String message,
+            HttpServletRequest request,
+            Map<String, String> fieldErrors
+    ) {
+        ErrorResponse response = new ErrorResponse(
+                Instant.now(),
+                status.value(),
+                status.getReasonPhrase(),
+                message,
+                request.getRequestURI(),
+                fieldErrors
+        );
+
+        return ResponseEntity.status(status).body(response);
     }
 }
