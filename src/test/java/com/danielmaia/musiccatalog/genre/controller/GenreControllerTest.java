@@ -6,11 +6,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,8 +41,8 @@ class GenreControllerTest {
     private GenreService genreService;
 
     @Test
-    @DisplayName("Should list all genres")
-    void shouldListAllGenres() throws Exception {
+    @DisplayName("Should list genres with pagination")
+    void shouldListGenresWithPagination() throws Exception {
         List<GenreResponse> genres = List.of(
                 new GenreResponse(
                         1L,
@@ -57,18 +60,31 @@ class GenreControllerTest {
                 )
         );
 
-        when(genreService.findAll()).thenReturn(genres);
+        Page<GenreResponse> genrePage = new PageImpl<>(
+                genres,
+                PageRequest.of(0, 20),
+                2
+        );
+
+        when(genreService.findAll(any(Pageable.class))).thenReturn(genrePage);
 
         mockMvc.perform(get("/api/v1/genres"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].name").value("Rock"))
-                .andExpect(jsonPath("$[0].description").value("Music genre characterized by electric guitars, drums and strong rhythm."))
-                .andExpect(jsonPath("$[1].id").value(2L))
-                .andExpect(jsonPath("$[1].name").value("Jazz"))
-                .andExpect(jsonPath("$[1].description").value("Music genre characterized by improvisation and swing."));
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].name").value("Rock"))
+                .andExpect(jsonPath("$.content[0].description").value("Music genre characterized by electric guitars, drums and strong rhythm."))
+                .andExpect(jsonPath("$.content[1].id").value(2L))
+                .andExpect(jsonPath("$.content[1].name").value("Jazz"))
+                .andExpect(jsonPath("$.content[1].description").value("Music genre characterized by improvisation and swing."))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.empty").value(false));
 
-        verify(genreService).findAll();
+        verify(genreService).findAll(any(Pageable.class));
     }
 
     @Test
@@ -242,5 +258,4 @@ class GenreControllerTest {
 
         verify(genreService).create(any());
     }
-
 }

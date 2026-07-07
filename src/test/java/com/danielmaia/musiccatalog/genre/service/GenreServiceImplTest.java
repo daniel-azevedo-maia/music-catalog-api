@@ -12,6 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -88,8 +92,8 @@ class GenreServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should list all genres")
-    void shouldListAllGenres() {
+    @DisplayName("Should list genres with pagination")
+    void shouldListGenresWithPagination() {
         Genre rock = genreWithId(
                 1L,
                 "Rock",
@@ -102,17 +106,30 @@ class GenreServiceImplTest {
                 "Music genre characterized by improvisation and swing."
         );
 
-        when(genreRepository.findAll()).thenReturn(List.of(rock, jazz));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        List<GenreResponse> response = genreService.findAll();
+        Page<Genre> genrePage = new PageImpl<>(
+                List.of(rock, jazz),
+                pageable,
+                2
+        );
 
-        assertThat(response).hasSize(2);
+        when(genreRepository.findAll(pageable)).thenReturn(genrePage);
 
-        assertThat(response)
+        Page<GenreResponse> response = genreService.findAll(pageable);
+
+        assertThat(response.getContent()).hasSize(2);
+
+        assertThat(response.getContent())
                 .extracting(GenreResponse::name)
                 .containsExactly("Rock", "Jazz");
 
-        verify(genreRepository).findAll();
+        assertThat(response.getNumber()).isZero();
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(2);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+
+        verify(genreRepository).findAll(pageable);
     }
 
     @Test
@@ -180,5 +197,4 @@ class GenreServiceImplTest {
         ReflectionTestUtils.setField(genre, "id", id);
         return genre;
     }
-
 }

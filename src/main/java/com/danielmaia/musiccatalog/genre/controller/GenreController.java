@@ -1,18 +1,20 @@
 package com.danielmaia.musiccatalog.genre.controller;
 
+import com.danielmaia.musiccatalog.common.dto.PageResponse;
 import com.danielmaia.musiccatalog.common.exception.ErrorResponse;
 import com.danielmaia.musiccatalog.genre.dto.GenreCreateRequest;
 import com.danielmaia.musiccatalog.genre.dto.GenreResponse;
 import com.danielmaia.musiccatalog.genre.dto.GenreUpdateRequest;
 import com.danielmaia.musiccatalog.genre.service.GenreService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,9 +26,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import com.danielmaia.musiccatalog.common.dto.PageResponse;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 
 import java.net.URI;
-import java.util.List;
 
 @Tag(
         name = "Genres",
@@ -40,20 +45,23 @@ public class GenreController {
     private final GenreService genreService;
 
     @Operation(
-            summary = "List all genres",
-            description = "Returns all music genres registered in the catalog."
+            summary = "List genres with pagination",
+            description = "Returns music genres registered in the catalog using pagination and sorting."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Genres returned successfully",
             content = @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    array = @ArraySchema(schema = @Schema(implementation = GenreResponse.class))
+                    schema = @Schema(implementation = PageResponse.class)
             )
     )
     @GetMapping
-    public List<GenreResponse> findAll() {
-        return genreService.findAll();
+    public ResponseEntity<PageResponse<GenreResponse>> findAll(
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
+            Pageable pageable
+    ) {
+        return ResponseEntity.ok(PageResponse.from(genreService.findAll(pageable)));
     }
 
     @Operation(
