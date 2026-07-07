@@ -4,15 +4,19 @@ import com.danielmaia.musiccatalog.artist.dto.ArtistCreateRequest;
 import com.danielmaia.musiccatalog.artist.dto.ArtistResponse;
 import com.danielmaia.musiccatalog.artist.dto.ArtistUpdateRequest;
 import com.danielmaia.musiccatalog.artist.service.ArtistService;
+import com.danielmaia.musiccatalog.common.dto.PageResponse;
 import com.danielmaia.musiccatalog.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,20 +44,23 @@ public class ArtistController {
     private final ArtistService artistService;
 
     @Operation(
-            summary = "List active artists",
-            description = "Returns all active artists registered in the catalog."
+            summary = "List active artists with pagination",
+            description = "Returns active artists registered in the catalog using pagination and sorting."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Active artists returned successfully",
             content = @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    array = @ArraySchema(schema = @Schema(implementation = ArtistResponse.class))
+                    schema = @Schema(implementation = PageResponse.class)
             )
     )
     @GetMapping
-    public List<ArtistResponse> findAllActive() {
-        return artistService.findAllActive();
+    public ResponseEntity<PageResponse<ArtistResponse>> findAllActive(
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(PageResponse.from(artistService.findAllActive(pageable)));
     }
 
     @Operation(

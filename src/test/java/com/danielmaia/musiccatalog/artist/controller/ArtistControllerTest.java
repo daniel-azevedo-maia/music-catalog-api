@@ -6,6 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,15 +17,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.mockito.ArgumentMatchers.any;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 @WebMvcTest(ArtistController.class)
 @ActiveProfiles("test")
@@ -34,8 +38,8 @@ class ArtistControllerTest {
     private ArtistService artistService;
 
     @Test
-    @DisplayName("Should list all active artists")
-    void shouldListAllActiveArtists() throws Exception {
+    @DisplayName("Should list active artists with pagination")
+    void shouldListActiveArtistsWithPagination() throws Exception {
         List<ArtistResponse> artists = List.of(
                 new ArtistResponse(
                         1L,
@@ -57,17 +61,31 @@ class ArtistControllerTest {
                 )
         );
 
-        when(artistService.findAllActive()).thenReturn(artists);
+        Page<ArtistResponse> artistPage = new PageImpl<>(
+                artists,
+                PageRequest.of(0, 20),
+                2
+        );
+
+        when(artistService.findAllActive(any(Pageable.class))).thenReturn(artistPage);
 
         mockMvc.perform(get("/api/v1/artists"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].name").value("Daft Punk"))
-                .andExpect(jsonPath("$[0].country").value("France"))
-                .andExpect(jsonPath("$[1].id").value(2L))
-                .andExpect(jsonPath("$[1].name").value("Radiohead"))
-                .andExpect(jsonPath("$[1].country").value("United Kingdom"));
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].name").value("Daft Punk"))
+                .andExpect(jsonPath("$.content[0].country").value("France"))
+                .andExpect(jsonPath("$.content[1].id").value(2L))
+                .andExpect(jsonPath("$.content[1].name").value("Radiohead"))
+                .andExpect(jsonPath("$.content[1].country").value("United Kingdom"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.empty").value(false));
     }
+
     @Test
     @DisplayName("Should find artist by id")
     void shouldFindArtistById() throws Exception {
@@ -90,6 +108,7 @@ class ArtistControllerTest {
                 .andExpect(jsonPath("$.country").value("United Kingdom"))
                 .andExpect(jsonPath("$.active").value(true));
     }
+
     @Test
     @DisplayName("Should create artist")
     void shouldCreateArtist() throws Exception {
@@ -154,6 +173,7 @@ class ArtistControllerTest {
                 .andExpect(jsonPath("$.biography").value("Updated biography."))
                 .andExpect(jsonPath("$.country").value("United Kingdom"));
     }
+
     @Test
     @DisplayName("Should deactivate artist")
     void shouldDeactivateArtist() throws Exception {

@@ -1,5 +1,6 @@
 package com.danielmaia.musiccatalog.track.controller;
 
+import com.danielmaia.musiccatalog.common.dto.PageResponse;
 import com.danielmaia.musiccatalog.common.exception.ErrorResponse;
 import com.danielmaia.musiccatalog.track.dto.TrackCreateRequest;
 import com.danielmaia.musiccatalog.track.dto.TrackResponse;
@@ -13,6 +14,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,20 +45,23 @@ public class TrackController {
     private final TrackService trackService;
 
     @Operation(
-            summary = "List all tracks",
-            description = "Returns all tracks registered in the catalog."
+            summary = "List tracks with pagination",
+            description = "Returns tracks registered in the catalog using pagination and sorting."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Tracks returned successfully",
             content = @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    array = @ArraySchema(schema = @Schema(implementation = TrackResponse.class))
+                    schema = @Schema(implementation = PageResponse.class)
             )
     )
     @GetMapping
-    public List<TrackResponse> findAll() {
-        return trackService.findAll();
+    public ResponseEntity<PageResponse<TrackResponse>> findAll(
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "title", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(PageResponse.from(trackService.findAll(pageable)));
     }
 
     @Operation(

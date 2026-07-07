@@ -6,6 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -36,8 +40,8 @@ class TrackControllerTest {
     private TrackService trackService;
 
     @Test
-    @DisplayName("Should list all tracks")
-    void shouldListAllTracks() throws Exception {
+    @DisplayName("Should list tracks with pagination")
+    void shouldListTracksWithPagination() throws Exception {
         List<TrackResponse> tracks = List.of(
                 new TrackResponse(
                         1L,
@@ -65,26 +69,41 @@ class TrackControllerTest {
                 )
         );
 
-        when(trackService.findAll()).thenReturn(tracks);
+        Page<TrackResponse> trackPage = new PageImpl<>(
+                tracks,
+                PageRequest.of(0, 20),
+                2
+        );
+
+        when(trackService.findAll(any(Pageable.class))).thenReturn(trackPage);
 
         mockMvc.perform(get("/api/v1/tracks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("Death on Two Legs"))
-                .andExpect(jsonPath("$[0].durationSeconds").value(223))
-                .andExpect(jsonPath("$[0].trackNumber").value(1))
-                .andExpect(jsonPath("$[0].albumId").value(1L))
-                .andExpect(jsonPath("$[0].albumTitle").value("A Night at the Opera"))
-                .andExpect(jsonPath("$[0].artistId").value(1L))
-                .andExpect(jsonPath("$[0].artistName").value("Queen"))
-                .andExpect(jsonPath("$[1].id").value(2L))
-                .andExpect(jsonPath("$[1].title").value("Bohemian Rhapsody"))
-                .andExpect(jsonPath("$[1].durationSeconds").value(354))
-                .andExpect(jsonPath("$[1].trackNumber").value(11))
-                .andExpect(jsonPath("$[1].albumId").value(1L))
-                .andExpect(jsonPath("$[1].albumTitle").value("A Night at the Opera"))
-                .andExpect(jsonPath("$[1].artistId").value(1L))
-                .andExpect(jsonPath("$[1].artistName").value("Queen"));
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].title").value("Death on Two Legs"))
+                .andExpect(jsonPath("$.content[0].durationSeconds").value(223))
+                .andExpect(jsonPath("$.content[0].trackNumber").value(1))
+                .andExpect(jsonPath("$.content[0].albumId").value(1L))
+                .andExpect(jsonPath("$.content[0].albumTitle").value("A Night at the Opera"))
+                .andExpect(jsonPath("$.content[0].artistId").value(1L))
+                .andExpect(jsonPath("$.content[0].artistName").value("Queen"))
+                .andExpect(jsonPath("$.content[1].id").value(2L))
+                .andExpect(jsonPath("$.content[1].title").value("Bohemian Rhapsody"))
+                .andExpect(jsonPath("$.content[1].durationSeconds").value(354))
+                .andExpect(jsonPath("$.content[1].trackNumber").value(11))
+                .andExpect(jsonPath("$.content[1].albumId").value(1L))
+                .andExpect(jsonPath("$.content[1].albumTitle").value("A Night at the Opera"))
+                .andExpect(jsonPath("$.content[1].artistId").value(1L))
+                .andExpect(jsonPath("$.content[1].artistName").value("Queen"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.empty").value(false));
+
+        verify(trackService).findAll(any(Pageable.class));
     }
 
     @Test
@@ -285,5 +304,4 @@ class TrackControllerTest {
 
         verify(trackService, never()).create(any());
     }
-
 }

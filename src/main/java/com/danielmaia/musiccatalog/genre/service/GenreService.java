@@ -3,8 +3,8 @@ package com.danielmaia.musiccatalog.genre.service;
 import com.danielmaia.musiccatalog.genre.dto.GenreCreateRequest;
 import com.danielmaia.musiccatalog.genre.dto.GenreResponse;
 import com.danielmaia.musiccatalog.genre.dto.GenreUpdateRequest;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface GenreService {
 
@@ -12,7 +12,7 @@ public interface GenreService {
 
     GenreResponse findById(Long id);
 
-    List<GenreResponse> findAll();
+    Page<GenreResponse> findAll(Pageable pageable);
 
     GenreResponse update(Long id, GenreUpdateRequest request);
 

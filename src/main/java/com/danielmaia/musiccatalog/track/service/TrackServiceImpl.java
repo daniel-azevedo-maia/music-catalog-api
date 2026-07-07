@@ -10,6 +10,8 @@ import com.danielmaia.musiccatalog.track.mapper.TrackMapper;
 import com.danielmaia.musiccatalog.track.repository.TrackRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,10 +51,9 @@ public class TrackServiceImpl implements TrackService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<TrackResponse> findAll() {
-        return trackRepository.findAll().stream()
-                .map(TrackMapper::toResponse)
-                .toList();
+    public Page<TrackResponse> findAll(Pageable pageable) {
+        return trackRepository.findAll(pageable)
+                .map(TrackMapper::toResponse);
     }
 
     @Override

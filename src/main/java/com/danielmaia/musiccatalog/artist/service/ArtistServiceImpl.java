@@ -8,10 +8,11 @@ import com.danielmaia.musiccatalog.artist.mapper.ArtistMapper;
 import com.danielmaia.musiccatalog.artist.repository.ArtistRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -47,11 +48,9 @@ public class ArtistServiceImpl implements ArtistService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ArtistResponse> findAllActive() {
-        return artistRepository.findAllByActiveTrueOrderByNameAsc()
-                .stream()
-                .map(ArtistMapper::toResponse)
-                .toList();
+    public Page<ArtistResponse> findAllActive(Pageable pageable) {
+        return artistRepository.findByActiveTrue(pageable)
+                .map(ArtistMapper::toResponse);
     }
 
     @Override

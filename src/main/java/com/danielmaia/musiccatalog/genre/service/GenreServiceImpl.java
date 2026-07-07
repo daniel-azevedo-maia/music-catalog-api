@@ -8,6 +8,8 @@ import com.danielmaia.musiccatalog.genre.mapper.GenreMapper;
 import com.danielmaia.musiccatalog.genre.repository.GenreRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,10 +44,9 @@ public class GenreServiceImpl implements GenreService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<GenreResponse> findAll() {
-        return genreRepository.findAll().stream()
-                .map(GenreMapper::toResponse)
-                .toList();
+    public Page<GenreResponse> findAll(Pageable pageable) {
+        return genreRepository.findAll(pageable)
+                .map(GenreMapper::toResponse);
     }
 
     @Override
