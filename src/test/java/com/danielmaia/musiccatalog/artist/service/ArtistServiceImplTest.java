@@ -12,6 +12,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -104,21 +108,33 @@ class ArtistServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should list all active artists")
-    void shouldListAllActiveArtists() {
+    @DisplayName("Should list active artists with pagination")
+    void shouldListActiveArtistsWithPagination() {
         Artist daftPunk = new Artist("Daft Punk", null, "France");
         Artist radiohead = new Artist("Radiohead", null, "United Kingdom");
 
-        when(artistRepository.findAllByActiveTrueOrderByNameAsc())
-                .thenReturn(List.of(daftPunk, radiohead));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        List<ArtistResponse> response = artistService.findAllActive();
+        Page<Artist> artistPage = new PageImpl<>(
+                List.of(daftPunk, radiohead),
+                pageable,
+                2
+        );
 
-        assertThat(response)
+        when(artistRepository.findByActiveTrue(pageable)).thenReturn(artistPage);
+
+        Page<ArtistResponse> response = artistService.findAllActive(pageable);
+
+        assertThat(response.getContent())
                 .extracting(ArtistResponse::name)
                 .containsExactly("Daft Punk", "Radiohead");
 
-        verify(artistRepository).findAllByActiveTrueOrderByNameAsc();
+        assertThat(response.getNumber()).isZero();
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(2);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+
+        verify(artistRepository).findByActiveTrue(pageable);
     }
 
     @Test

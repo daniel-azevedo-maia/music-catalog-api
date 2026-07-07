@@ -4,6 +4,7 @@ import com.danielmaia.musiccatalog.album.dto.AlbumCreateRequest;
 import com.danielmaia.musiccatalog.album.dto.AlbumResponse;
 import com.danielmaia.musiccatalog.album.dto.AlbumUpdateRequest;
 import com.danielmaia.musiccatalog.album.service.AlbumService;
+import com.danielmaia.musiccatalog.common.dto.PageResponse;
 import com.danielmaia.musiccatalog.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -13,6 +14,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,20 +45,23 @@ public class AlbumController {
     private final AlbumService albumService;
 
     @Operation(
-            summary = "List all albums",
-            description = "Returns all albums registered in the catalog."
+            summary = "List albums with pagination",
+            description = "Returns albums registered in the catalog using pagination and sorting."
     )
     @ApiResponse(
             responseCode = "200",
             description = "Albums returned successfully",
             content = @Content(
                     mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    array = @ArraySchema(schema = @Schema(implementation = AlbumResponse.class))
+                    schema = @Schema(implementation = PageResponse.class)
             )
     )
     @GetMapping
-    public List<AlbumResponse> findAll() {
-        return albumService.findAll();
+    public ResponseEntity<PageResponse<AlbumResponse>> findAll(
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "title", direction = Sort.Direction.ASC) Pageable pageable
+    ) {
+        return ResponseEntity.ok(PageResponse.from(albumService.findAll(pageable)));
     }
 
     @Operation(

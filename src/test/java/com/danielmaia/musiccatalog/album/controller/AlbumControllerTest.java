@@ -6,6 +6,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -37,8 +41,8 @@ class AlbumControllerTest {
     private AlbumService albumService;
 
     @Test
-    @DisplayName("Should list all albums")
-    void shouldListAllAlbums() throws Exception {
+    @DisplayName("Should list albums with pagination")
+    void shouldListAlbumsWithPagination() throws Exception {
         List<AlbumResponse> albums = List.of(
                 new AlbumResponse(
                         1L,
@@ -60,20 +64,35 @@ class AlbumControllerTest {
                 )
         );
 
-        when(albumService.findAll()).thenReturn(albums);
+        Page<AlbumResponse> albumPage = new PageImpl<>(
+                albums,
+                PageRequest.of(0, 20),
+                2
+        );
+
+        when(albumService.findAll(any(Pageable.class))).thenReturn(albumPage);
 
         mockMvc.perform(get("/api/v1/albums"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").value(1L))
-                .andExpect(jsonPath("$[0].title").value("A Night at the Opera"))
-                .andExpect(jsonPath("$[0].releaseDate").value("1975-11-21"))
-                .andExpect(jsonPath("$[0].artistId").value(1L))
-                .andExpect(jsonPath("$[0].artistName").value("Queen"))
-                .andExpect(jsonPath("$[1].id").value(2L))
-                .andExpect(jsonPath("$[1].title").value("News of the World"))
-                .andExpect(jsonPath("$[1].releaseDate").value("1977-10-28"))
-                .andExpect(jsonPath("$[1].artistId").value(1L))
-                .andExpect(jsonPath("$[1].artistName").value("Queen"));
+                .andExpect(jsonPath("$.content[0].id").value(1L))
+                .andExpect(jsonPath("$.content[0].title").value("A Night at the Opera"))
+                .andExpect(jsonPath("$.content[0].releaseDate").value("1975-11-21"))
+                .andExpect(jsonPath("$.content[0].artistId").value(1L))
+                .andExpect(jsonPath("$.content[0].artistName").value("Queen"))
+                .andExpect(jsonPath("$.content[1].id").value(2L))
+                .andExpect(jsonPath("$.content[1].title").value("News of the World"))
+                .andExpect(jsonPath("$.content[1].releaseDate").value("1977-10-28"))
+                .andExpect(jsonPath("$.content[1].artistId").value(1L))
+                .andExpect(jsonPath("$.content[1].artistName").value("Queen"))
+                .andExpect(jsonPath("$.pageNumber").value(0))
+                .andExpect(jsonPath("$.pageSize").value(20))
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.first").value(true))
+                .andExpect(jsonPath("$.last").value(true))
+                .andExpect(jsonPath("$.empty").value(false));
+
+        verify(albumService).findAll(any(Pageable.class));
     }
 
     @Test

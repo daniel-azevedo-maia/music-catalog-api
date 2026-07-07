@@ -15,6 +15,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
@@ -129,8 +133,8 @@ class TrackServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should list all tracks")
-    void shouldListAllTracks() {
+    @DisplayName("Should list tracks with pagination")
+    void shouldListTracksWithPagination() {
         Album album = createAlbumWithArtist();
 
         Track track1 = new Track(
@@ -151,19 +155,32 @@ class TrackServiceImplTest {
 
         ReflectionTestUtils.setField(track2, "id", 2L);
 
-        when(trackRepository.findAll()).thenReturn(List.of(track1, track2));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        List<TrackResponse> response = trackService.findAll();
+        Page<Track> trackPage = new PageImpl<>(
+                List.of(track1, track2),
+                pageable,
+                2
+        );
 
-        assertThat(response)
+        when(trackRepository.findAll(pageable)).thenReturn(trackPage);
+
+        Page<TrackResponse> response = trackService.findAll(pageable);
+
+        assertThat(response.getContent())
                 .extracting(TrackResponse::title)
                 .containsExactly("Death on Two Legs", "Bohemian Rhapsody");
 
-        assertThat(response)
+        assertThat(response.getContent())
                 .extracting(TrackResponse::trackNumber)
                 .containsExactly(1, 11);
 
-        verify(trackRepository).findAll();
+        assertThat(response.getNumber()).isZero();
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(2);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+
+        verify(trackRepository).findAll(pageable);
     }
 
     @Test
@@ -240,5 +257,4 @@ class TrackServiceImplTest {
 
         return album;
     }
-
 }

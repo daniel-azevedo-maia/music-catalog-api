@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
@@ -58,8 +59,8 @@ public class GenreController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<GenreResponse>> findAll(
-            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC)
-            Pageable pageable
+            @ParameterObject
+            @PageableDefault(size = 20, sort = "name", direction = Sort.Direction.ASC) Pageable pageable
     ) {
         return ResponseEntity.ok(PageResponse.from(genreService.findAll(pageable)));
     }

@@ -7,25 +7,29 @@ import com.danielmaia.musiccatalog.album.dto.AlbumUpdateRequest;
 import com.danielmaia.musiccatalog.album.repository.AlbumRepository;
 import com.danielmaia.musiccatalog.artist.domain.Artist;
 import com.danielmaia.musiccatalog.artist.repository.ArtistRepository;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
-import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class AlbumServiceImplTest {
@@ -75,6 +79,7 @@ class AlbumServiceImplTest {
         verify(artistRepository).findById(1L);
         verify(albumRepository).save(any(Album.class));
     }
+
     @Test
     @DisplayName("Should throw exception when creating album with non-existing artist")
     void shouldThrowExceptionWhenCreatingAlbumWithNonExistingArtist() {
@@ -137,9 +142,10 @@ class AlbumServiceImplTest {
 
         verify(albumRepository).findById(99L);
     }
+
     @Test
-    @DisplayName("Should list all albums")
-    void shouldListAllAlbums() {
+    @DisplayName("Should list albums with pagination")
+    void shouldListAlbumsWithPagination() {
         Artist artist = new Artist(
                 "Queen",
                 "British rock band.",
@@ -164,15 +170,28 @@ class AlbumServiceImplTest {
 
         ReflectionTestUtils.setField(album2, "id", 2L);
 
-        when(albumRepository.findAll()).thenReturn(List.of(album1, album2));
+        Pageable pageable = PageRequest.of(0, 20);
 
-        List<AlbumResponse> response = albumService.findAll();
+        Page<Album> albumPage = new PageImpl<>(
+                List.of(album1, album2),
+                pageable,
+                2
+        );
 
-        assertThat(response)
+        when(albumRepository.findAll(pageable)).thenReturn(albumPage);
+
+        Page<AlbumResponse> response = albumService.findAll(pageable);
+
+        assertThat(response.getContent())
                 .extracting(AlbumResponse::title)
                 .containsExactly("A Night at the Opera", "News of the World");
 
-        verify(albumRepository).findAll();
+        assertThat(response.getNumber()).isZero();
+        assertThat(response.getSize()).isEqualTo(20);
+        assertThat(response.getTotalElements()).isEqualTo(2);
+        assertThat(response.getTotalPages()).isEqualTo(1);
+
+        verify(albumRepository).findAll(pageable);
     }
 
     @Test
@@ -238,5 +257,4 @@ class AlbumServiceImplTest {
         verify(albumRepository).findById(1L);
         verify(albumRepository).delete(album);
     }
-
 }

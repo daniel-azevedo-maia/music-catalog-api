@@ -10,6 +10,8 @@ import com.danielmaia.musiccatalog.artist.domain.Artist;
 import com.danielmaia.musiccatalog.artist.repository.ArtistRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,8 +42,9 @@ public class AlbumServiceImpl implements AlbumService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AlbumResponse> findAll() {
-        return albumRepository.findAll().stream().map(AlbumMapper::toResponse).toList();
+    public Page<AlbumResponse> findAll(Pageable pageable) {
+        return albumRepository.findAll(pageable)
+                .map(AlbumMapper::toResponse);
     }
 
     @Override
