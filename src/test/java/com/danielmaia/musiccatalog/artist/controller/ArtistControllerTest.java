@@ -38,8 +38,8 @@ class ArtistControllerTest {
     private ArtistService artistService;
 
     @Test
-    @DisplayName("Should list active artists with pagination")
-    void shouldListActiveArtistsWithPagination() throws Exception {
+    @DisplayName("Should search active artists using filters and pagination")
+    void shouldSearchActiveArtistsUsingFiltersAndPagination() throws Exception {
         List<ArtistResponse> artists = List.of(
                 new ArtistResponse(
                         1L,
@@ -49,37 +49,33 @@ class ArtistControllerTest {
                         true,
                         Instant.parse("2026-01-01T10:00:00Z"),
                         Instant.parse("2026-01-01T10:00:00Z")
-                ),
-                new ArtistResponse(
-                        2L,
-                        "Radiohead",
-                        "English rock band.",
-                        "United Kingdom",
-                        true,
-                        Instant.parse("2026-01-02T10:00:00Z"),
-                        Instant.parse("2026-01-02T10:00:00Z")
                 )
         );
 
         Page<ArtistResponse> artistPage = new PageImpl<>(
                 artists,
                 PageRequest.of(0, 20),
-                2
+                1
         );
 
-        when(artistService.findAllActive(any(Pageable.class))).thenReturn(artistPage);
+        when(artistService.findAllActive(
+                eq("daft"),
+                eq("france"),
+                any(Pageable.class)
+        )).thenReturn(artistPage);
 
-        mockMvc.perform(get("/api/v1/artists"))
+        mockMvc.perform(
+                        get("/api/v1/artists")
+                                .param("name", "daft")
+                                .param("country", "france")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1L))
                 .andExpect(jsonPath("$.content[0].name").value("Daft Punk"))
                 .andExpect(jsonPath("$.content[0].country").value("France"))
-                .andExpect(jsonPath("$.content[1].id").value(2L))
-                .andExpect(jsonPath("$.content[1].name").value("Radiohead"))
-                .andExpect(jsonPath("$.content[1].country").value("United Kingdom"))
                 .andExpect(jsonPath("$.pageNumber").value(0))
                 .andExpect(jsonPath("$.pageSize").value(20))
-                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1))
                 .andExpect(jsonPath("$.first").value(true))
                 .andExpect(jsonPath("$.last").value(true))

@@ -12,7 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.danielmaia.musiccatalog.artist.specification.ArtistSpecification;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 @RequiredArgsConstructor
@@ -48,8 +49,15 @@ public class ArtistServiceImpl implements ArtistService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<ArtistResponse> findAllActive(Pageable pageable) {
-        return artistRepository.findByActiveTrue(pageable)
+    public Page<ArtistResponse> findAllActive(
+            String name,
+            String country,
+            Pageable pageable
+    ) {
+        Specification<Artist> filters =
+                ArtistSpecification.withFilters(name, country);
+
+        return artistRepository.findAll(filters, pageable)
                 .map(ArtistMapper::toResponse);
     }
 

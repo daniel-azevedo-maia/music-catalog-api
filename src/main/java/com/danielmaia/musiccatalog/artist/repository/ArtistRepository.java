@@ -1,19 +1,12 @@
 package com.danielmaia.musiccatalog.artist.repository;
 
-
 import com.danielmaia.musiccatalog.artist.domain.Artist;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-import java.util.List;
-
-public interface ArtistRepository extends JpaRepository<Artist, Long> {
+public interface ArtistRepository extends
+        JpaRepository<Artist, Long>,
+        JpaSpecificationExecutor<Artist> {
 
     boolean existsByNameIgnoreCase(String name);
-
-    List<Artist> findAllByActiveTrueOrderByNameAsc();
-
-    Page<Artist> findByActiveTrue(Pageable pageable);
-
 }

@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -108,10 +110,19 @@ class ArtistServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should list active artists with pagination")
-    void shouldListActiveArtistsWithPagination() {
-        Artist daftPunk = new Artist("Daft Punk", null, "France");
-        Artist radiohead = new Artist("Radiohead", null, "United Kingdom");
+    @DisplayName("Should search active artists using filters and pagination")
+    void shouldSearchActiveArtistsUsingFiltersAndPagination() {
+        Artist daftPunk = new Artist(
+                "Daft Punk",
+                null,
+                "France"
+        );
+
+        Artist radiohead = new Artist(
+                "Radiohead",
+                null,
+                "United Kingdom"
+        );
 
         Pageable pageable = PageRequest.of(0, 20);
 
@@ -121,21 +132,35 @@ class ArtistServiceImplTest {
                 2
         );
 
-        when(artistRepository.findByActiveTrue(pageable)).thenReturn(artistPage);
+        when(artistRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(artistPage);
 
-        Page<ArtistResponse> response = artistService.findAllActive(pageable);
+        Page<ArtistResponse> response = artistService.findAllActive(
+                "daft",
+                "france",
+                pageable
+        );
 
         assertThat(response.getContent())
                 .extracting(ArtistResponse::name)
-                .containsExactly("Daft Punk", "Radiohead");
+                .containsExactly(
+                        "Daft Punk",
+                        "Radiohead"
+                );
 
         assertThat(response.getNumber()).isZero();
         assertThat(response.getSize()).isEqualTo(20);
         assertThat(response.getTotalElements()).isEqualTo(2);
         assertThat(response.getTotalPages()).isEqualTo(1);
 
-        verify(artistRepository).findByActiveTrue(pageable);
+        verify(artistRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
+        );
     }
+
 
     @Test
     @DisplayName("Should update artist")
