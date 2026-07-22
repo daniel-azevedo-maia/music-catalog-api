@@ -2,11 +2,13 @@ package com.danielmaia.musiccatalog.album.controller;
 
 import com.danielmaia.musiccatalog.album.dto.AlbumCreateRequest;
 import com.danielmaia.musiccatalog.album.dto.AlbumResponse;
+import com.danielmaia.musiccatalog.album.dto.AlbumSearchFilter;
 import com.danielmaia.musiccatalog.album.dto.AlbumUpdateRequest;
 import com.danielmaia.musiccatalog.album.service.AlbumService;
 import com.danielmaia.musiccatalog.common.dto.PageResponse;
 import com.danielmaia.musiccatalog.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,19 +20,14 @@ import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
+import java.time.LocalDate;
 
 @Tag(
         name = "Albums",
@@ -44,8 +41,8 @@ public class AlbumController {
     private final AlbumService albumService;
 
     @Operation(
-            summary = "List albums with pagination",
-            description = "Returns albums registered in the catalog using pagination and sorting."
+            summary = "Search albums",
+            description = "Returns albums using optional filters, pagination and sorting."
     )
     @ApiResponse(
             responseCode = "200",
@@ -57,10 +54,44 @@ public class AlbumController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<AlbumResponse>> findAll(
+            @Parameter(description = "Text contained in the album title")
+            @RequestParam(required = false)
+            String title,
+
+            @Parameter(description = "Artist identifier")
+            @RequestParam(required = false)
+            Long artistId,
+
+            @Parameter(description = "Initial release date in yyyy-MM-dd format")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate startDate,
+
+            @Parameter(description = "Final release date in yyyy-MM-dd format")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate endDate,
+
             @ParameterObject
-            @PageableDefault(size = 20, sort = "title", direction = Sort.Direction.ASC) Pageable pageable
+            @PageableDefault(
+                    size = 20,
+                    sort = "title",
+                    direction = Sort.Direction.ASC
+            )
+            Pageable pageable
     ) {
-        return ResponseEntity.ok(PageResponse.from(albumService.findAll(pageable)));
+        AlbumSearchFilter filter = new AlbumSearchFilter(
+                title,
+                artistId,
+                startDate,
+                endDate
+        );
+
+        PageResponse<AlbumResponse> response = PageResponse.from(
+                albumService.findAll(filter, pageable)
+        );
+
+        return ResponseEntity.ok(response);
     }
 
     @Operation(

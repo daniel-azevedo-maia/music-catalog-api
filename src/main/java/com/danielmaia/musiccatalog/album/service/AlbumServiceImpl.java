@@ -3,15 +3,18 @@ package com.danielmaia.musiccatalog.album.service;
 import com.danielmaia.musiccatalog.album.domain.Album;
 import com.danielmaia.musiccatalog.album.dto.AlbumCreateRequest;
 import com.danielmaia.musiccatalog.album.dto.AlbumResponse;
+import com.danielmaia.musiccatalog.album.dto.AlbumSearchFilter;
 import com.danielmaia.musiccatalog.album.dto.AlbumUpdateRequest;
 import com.danielmaia.musiccatalog.album.mapper.AlbumMapper;
 import com.danielmaia.musiccatalog.album.repository.AlbumRepository;
+import com.danielmaia.musiccatalog.album.specification.AlbumSpecification;
 import com.danielmaia.musiccatalog.artist.domain.Artist;
 import com.danielmaia.musiccatalog.artist.repository.ArtistRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,8 +45,19 @@ public class AlbumServiceImpl implements AlbumService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AlbumResponse> findAll(Pageable pageable) {
-        return albumRepository.findAll(pageable)
+    public Page<AlbumResponse> findAll(
+            AlbumSearchFilter filter,
+            Pageable pageable
+    ) {
+        Specification<Album> filters =
+                AlbumSpecification.withFilters(
+                        filter.title(),
+                        filter.artistId(),
+                        filter.startDate(),
+                        filter.endDate()
+                );
+
+        return albumRepository.findAll(filters, pageable)
                 .map(AlbumMapper::toResponse);
     }
 

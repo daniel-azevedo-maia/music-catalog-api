@@ -12,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -113,16 +114,21 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception exception,
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException exception,
             HttpServletRequest request
     ) {
+        Map<String, String> fieldErrors = Map.of(
+                exception.getName(),
+                "Invalid value"
+        );
+
         return buildErrorResponse(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred",
+                HttpStatus.BAD_REQUEST,
+                "Invalid request parameter",
                 request,
-                Map.of()
+                fieldErrors
         );
     }
 

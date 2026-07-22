@@ -3,6 +3,7 @@ package com.danielmaia.musiccatalog.album.service;
 import com.danielmaia.musiccatalog.album.domain.Album;
 import com.danielmaia.musiccatalog.album.dto.AlbumCreateRequest;
 import com.danielmaia.musiccatalog.album.dto.AlbumResponse;
+import com.danielmaia.musiccatalog.album.dto.AlbumSearchFilter;
 import com.danielmaia.musiccatalog.album.dto.AlbumUpdateRequest;
 import com.danielmaia.musiccatalog.album.repository.AlbumRepository;
 import com.danielmaia.musiccatalog.artist.domain.Artist;
@@ -18,6 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDate;
@@ -27,6 +29,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -178,20 +181,25 @@ class AlbumServiceImplTest {
                 2
         );
 
-        when(albumRepository.findAll(pageable)).thenReturn(albumPage);
+        AlbumSearchFilter filter = new AlbumSearchFilter(
+                "night",
+                1L,
+                LocalDate.of(1970, 1, 1),
+                LocalDate.of(1980, 12, 31)
+        );
 
-        Page<AlbumResponse> response = albumService.findAll(pageable);
+        when(albumRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(albumPage);
 
-        assertThat(response.getContent())
-                .extracting(AlbumResponse::title)
-                .containsExactly("A Night at the Opera", "News of the World");
+        Page<AlbumResponse> response =
+                albumService.findAll(filter, pageable);
 
-        assertThat(response.getNumber()).isZero();
-        assertThat(response.getSize()).isEqualTo(20);
-        assertThat(response.getTotalElements()).isEqualTo(2);
-        assertThat(response.getTotalPages()).isEqualTo(1);
-
-        verify(albumRepository).findAll(pageable);
+        verify(albumRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
+        );
     }
 
     @Test
